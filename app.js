@@ -1,8 +1,10 @@
 console.log('starting password manager');
 
-//Getting node-persist into the application
+//Accessing the persist module
 var storage = require('node-persist');
+//Accessing the crypto-js module
 var crypto = require('crypto-js');
+//Accessing the yargs module and assigning options for the commands
 var argv = require('yargs')
 	.command('create', 'Create an account', function(yargs) {
 		yargs.options({
@@ -50,14 +52,16 @@ var argv = require('yargs')
 	})
 	.help('help')
 	.argv;
-//Setting up computer to save
+//Setting up computer to save account information
 storage.initSync();
 
+//Getting accounts from the accounts file in the persist folder
 function getAccounts(masterPassword) {
-	// use getItemSync to fetch accounts
+	//Grabbing the accounts 
 	var encryptedAccount = storage.getItemSync('accounts');
+	//Creating an accounts array so an array is returned regardless of whether there is data
 	var accounts = [];
-	//if accounts is undefined, create it
+	//If there is data in the accounts file, decrpt it and assign it to the accounts array
 	if(typeof encryptedAccount !== 'undefined') {
 		//decrypt
 		var bytes = crypto.AES.decrypt(encryptedAccount, masterPassword);
@@ -67,17 +71,20 @@ function getAccounts(masterPassword) {
 	return accounts;
 }
 
+//Saving the accounts array to the accounts file with any new account added to it
 function saveAccounts (accounts, masterPassword) {
-	//ecrypt accounts
+	//Encrypting the accounts array
 	var encryptedAccounts = crypto.AES.encrypt(JSON.stringify(accounts), masterPassword); 
-	// setItemSync
+	//Saving the accounts array to the accounts file
 	storage.setItemSync('accounts', encryptedAccounts.toString());
 	//return accounts
 	return accounts;
 }
 
+//Pushing new account credentials and saving the array to the file
 function createAccount(account, masterPassword) {
 	var accounts = getAccounts(masterPassword);
+
 	accounts.push(account);
 	
 	saveAccounts(accounts, masterPassword);
@@ -85,6 +92,7 @@ function createAccount(account, masterPassword) {
 	return account;
 }
 
+//Taking the inputed account name and masterpassword and looking for a match in the accounts file
 function getAccount(accountName, masterPassword) {
 	var accounts = getAccounts(masterPassword);
 	var matchedAccount;
@@ -98,9 +106,10 @@ function getAccount(accountName, masterPassword) {
 
 	return matchedAccount;
 }
-
+//Getting the user input
 var command = argv._[0];
 
+//Creating an account object and saving it with the createAccount function
 if(command === 'create'){
 	try{
 		var createdAccount = createAccount({
@@ -114,6 +123,8 @@ if(command === 'create'){
 		console.log('Unable to create new account');
 	}
 }
+
+//If an account is found, displaying it
 else if(command === 'get'){
 	try {
 		var fetchedAccount = getAccount(argv.name, argv.masterPassword);
@@ -128,13 +139,3 @@ else if(command === 'get'){
 		console.log('Unable to fetch account');
 	}
 }
-// //Creating an account
-// createAccount({
-// 	name: 'Facebook',
-// 	username: 'someemail@gmail.com',
-// 	password: 'facebookpass'
-// });
-
-// //Displaying an account
-// var facebookAccount = getAccount('Facebook');
-// console.log(facebookAccount);
